@@ -1,0 +1,31 @@
+return {
+  id = "lv3_multi",
+  name = "Lv.3: 複数行・一括編集",
+  description = "矩形選択(<C-v>), 行結合(J)",
+  problems = {
+    {
+      id = "lv3_01",
+      title = "矩形選択でのコメントアウト",
+      mission = "全行の先頭に `# ` を挿入してコメントアウトせよ",
+      filetype = "python",
+      cursor = { 1, 0 },
+      initial = "import os\nimport sys\nimport time",
+      target = "# import os\n# import sys\n# import time",
+      ideal_keys = "<C-v>2jI# <Esc>",
+      ideal_count = 8,
+      explanation = "<C-v> で矩形ビジュアルに入り、2j で3行選択後、I# <Esc> で全行先頭に挿入できます。",
+    },
+    {
+      id = "lv3_02",
+      title = "行結合でワンライナー化",
+      mission = "3行の配列定義を1行に結合せよ",
+      filetype = "python",
+      cursor = { 1, 0 },
+      initial = "items = [\n    1, 2,\n    3, 4\n]",
+      target = "items = [ 1, 2, 3, 4 ]",
+      ideal_keys = "3J",
+      ideal_count = 2,
+      explanation = "3J でカーソル行から3行を一気にスペース区切りで結合できます。",
+    },
+  },
+}
