@@ -1,4 +1,5 @@
 local storage = require("vim-master.storage")
+local config = require("vim-master.config")
 
 local M = {}
 
@@ -13,14 +14,39 @@ local builtin_courses = {
 
 function M.get_courses()
   local courses = {}
+  -- 1. 組み込みコースの読み込み
   for _, mod_name in ipairs(builtin_courses) do
     local ok, course = pcall(require, mod_name)
     if ok and course then
       table.insert(courses, course)
     end
   end
+
+  -- 2. ユーザー独自コースの自動スキャン
+  local custom_dir = config.options.custom_courses_dir or config.defaults.custom_courses_dir
+  if custom_dir and vim.fn.isdirectory(custom_dir) == 1 then
+    local files = vim.fn.glob(custom_dir .. "/*.lua", false, true)
+    for _, file_path in ipairs(files) do
+      local chunk, err = loadfile(file_path)
+      if chunk then
+        local ok, course = pcall(chunk)
+        if ok and type(course) == "table" and course.problems and #course.problems > 0 then
+          course.is_custom = true
+          if not course.id then
+            course.id = vim.fs.basename(file_path):gsub("%.lua$", "")
+          end
+          if not course.name then
+            course.name = "Custom: " .. course.id
+          end
+          table.insert(courses, course)
+        end
+      end
+    end
+  end
+
   return courses
 end
+
 
 function M.get_course(course_id)
   local courses = M.get_courses()

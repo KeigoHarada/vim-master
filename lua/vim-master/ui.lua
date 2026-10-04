@@ -114,7 +114,7 @@ function M.show_menu(courses, on_select)
     -- フッター
     table.insert(lines, "  ──────────────────────────────────────────────────────────")
     table.insert(highlights, { #lines - 1, "Comment", 2, -1 })
-    table.insert(lines, "   <Enter>: Select    j/k: Move    1-5: Direct    q: Quit")
+    table.insert(lines, "   <Enter>: Select    j/k: Move    1-5: Direct    s: Stats    q: Quit")
     table.insert(highlights, { #lines - 1, "SpecialKey", 3, -1 })
     table.insert(lines, "")
 
@@ -183,6 +183,12 @@ function M.show_menu(courses, on_select)
     end, { buffer = buf, nowait = true })
   end
 
+  -- 統計画面の表示 (s)
+  vim.keymap.set("n", "s", function()
+    close_menu()
+    M.show_stats()
+  end, { buffer = buf, nowait = true })
+
   -- 決定
   vim.keymap.set("n", "<CR>", function()
     close_menu()
@@ -195,6 +201,7 @@ function M.show_menu(courses, on_select)
   vim.keymap.set("n", "q", close_menu, { buffer = buf, nowait = true })
   vim.keymap.set("n", "<Esc>", close_menu, { buffer = buf, nowait = true })
 end
+
 
 
 -- 2. ドリル画面の構築（左右スプリット）
@@ -437,4 +444,103 @@ function M.close_drill()
   state.clear()
 end
 
+-- 8. 学習統計・進捗の表示
+function M.show_stats()
+  storage.load()
+  local loader = require("vim-master.courses.loader")
+  local courses = loader.get_courses()
+
+  local lines = {}
+  local highlights = {}
+
+  table.insert(lines, "")
+  table.insert(lines, "   VimMaster")
+  table.insert(highlights, { #lines - 1, "Title", 3, -1 })
+  table.insert(lines, "   学習記録")
+  table.insert(highlights, { #lines - 1, "Comment", 3, -1 })
+  table.insert(lines, "  ──────────────────────────────────────────────────────────")
+  table.insert(highlights, { #lines - 1, "Comment", 2, -1 })
+  table.insert(lines, "")
+
+  local total_keys = storage.data.total_keys or 0
+  local total_cleared = 0
+  local total_problems = 0
+
+  for _, c in ipairs(courses) do
+    for _, p in ipairs(c.problems or {}) do
+      total_problems = total_problems + 1
+      local stat = storage.data.problems[p.id]
+      if stat and stat.cleared_count and stat.cleared_count > 0 then
+        total_cleared = total_cleared + 1
+      end
+    end
+  end
+
+  table.insert(lines, string.format("   Total Practice : %s Keys", vim.fn.printf("%'d", total_keys)))
+  table.insert(highlights, { #lines - 1, "Special", 3, -1 })
+
+  table.insert(lines, string.format("   Cleared        : %d / %d Problems", total_cleared, total_problems))
+  table.insert(highlights, { #lines - 1, "Directory", 3, -1 })
+  table.insert(lines, "")
+
+  table.insert(lines, "  ──────────────────────────────────────────────────────────")
+  table.insert(highlights, { #lines - 1, "Comment", 2, -1 })
+  table.insert(lines, "   [問題別 ベスト記録]")
+  table.insert(highlights, { #lines - 1, "Title", 3, -1 })
+  table.insert(lines, "")
+
+  for _, c in ipairs(courses) do
+    table.insert(lines, string.format("   ■ %s", c.name))
+    table.insert(highlights, { #lines - 1, "Function", 3, -1 })
+
+    for _, p in ipairs(c.problems or {}) do
+      local stat = storage.data.problems[p.id]
+      if stat and stat.cleared_count and stat.cleared_count > 0 then
+        local time_str = stat.best_time_ms and string.format("%.2fs", stat.best_time_ms / 1000) or "N/A"
+        local p_line = string.format("     • %-18s Best: %2d keys (Par: %2d)  Time: %s", p.title, stat.best_keys or 0, p.ideal_count or 0, time_str)
+        table.insert(lines, p_line)
+        table.insert(highlights, { #lines - 1, "Normal", 5, -1 })
+      else
+        local p_line = string.format("     • %-18s [未クリア]", p.title)
+        table.insert(lines, p_line)
+        table.insert(highlights, { #lines - 1, "Comment", 5, -1 })
+      end
+    end
+    table.insert(lines, "")
+  end
+
+  table.insert(lines, "  ──────────────────────────────────────────────────────────")
+  table.insert(highlights, { #lines - 1, "Comment", 2, -1 })
+  table.insert(lines, "   j/k: Scroll    q/<Esc>: Close")
+  table.insert(highlights, { #lines - 1, "SpecialKey", 3, -1 })
+  table.insert(lines, "")
+
+  local width = math.min(70, vim.o.columns - 4)
+  local height = math.min(#lines, vim.o.lines - 4)
+  local buf, win = create_float({
+    width = width,
+    height = height,
+    title = " Statistics ",
+  })
+
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo[buf].modifiable = false
+
+  -- ハイライト適用
+  vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
+  for _, hl in ipairs(highlights) do
+    vim.api.nvim_buf_add_highlight(buf, ns_id, hl[2], hl[1], hl[3], hl[4])
+  end
+
+  local function close_stats()
+    if vim.api.nvim_win_is_valid(win) then
+      vim.api.nvim_win_close(win, true)
+    end
+  end
+
+  vim.keymap.set("n", "q", close_stats, { buffer = buf, nowait = true })
+  vim.keymap.set("n", "<Esc>", close_stats, { buffer = buf, nowait = true })
+end
+
 return M
+

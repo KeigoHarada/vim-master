@@ -11,6 +11,7 @@ M.defaults = {
     width_ratio = 0.5,
   },
   storage_path = vim.fn.stdpath("data") .. "/vim-master/stats.json",
+  custom_courses_dir = vim.fn.stdpath("config") .. "/vim-master/courses",
 }
 
 M.options = {}

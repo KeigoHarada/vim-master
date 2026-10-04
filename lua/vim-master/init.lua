@@ -10,6 +10,11 @@ function M.setup(opts)
 end
 
 function M.open(course_id)
+  if course_id == "stats" then
+    ui.show_stats()
+    return
+  end
+
   local courses = loader.get_courses()
   if #courses == 0 then
     vim.notify("[VimMaster] コースが見つかりません", vim.log.levels.WARN)
@@ -23,6 +28,7 @@ function M.open(course_id)
       return
     end
   end
+
 
   -- メニューの表示
   ui.show_menu(courses, function(selected_course)
